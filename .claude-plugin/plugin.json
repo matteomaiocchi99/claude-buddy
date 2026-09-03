@@ -1,6 +1,9 @@
 {
   "name": "claude-buddy",
   "version": "1.0.0",
+  "author": {
+    "name": "Matteo Maiocchi"
+  },
   "description": "Pet da terminale per Claude Code: ricostruzione della feature Claude Buddy (April Fools 2026), generata deterministicamente dal proprio account id. 18 specie, 5 tier di rarita', watcher che commenta la sessione nella status bar.",
   "skills": "./skills/"
 }
