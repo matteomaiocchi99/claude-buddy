@@ -47,14 +47,14 @@ provenienza e [`skills/buddy/README.md`](skills/buddy/README.md) per l'algoritmo
 ### Come plugin (consigliato)
 
 ```
-/plugin marketplace add <url-di-questo-repo>
+/plugin marketplace add matteomaiocchi99/claude-buddy
 /plugin install claude-buddy@claude-buddy
 ```
 
 ### A mano
 
 ```bash
-git clone <url-di-questo-repo> claude-buddy
+git clone https://github.com/matteomaiocchi99/claude-buddy.git
 cd claude-buddy && ./install.sh
 ```
 
