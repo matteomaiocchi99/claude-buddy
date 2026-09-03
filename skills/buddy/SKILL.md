@@ -56,6 +56,7 @@ NO_COLOR=1 node "$BUDDY" [comando] [opzioni]
 | *(nessuno)* | Schiude se serve (animazione dell'uovo), poi stampa **la card** |
 | `peek` | **Sola lettura**: bones, `hatched`, parole d'ispirazione e `soulRequest`. Non scrive niente |
 | `prompt` | Il prompt di sistema originale per nome e personalità |
+| `frames [pet\|hatch]` | I frame dell'animazione in JSON, per esportarla (vedi `tools/animate.py`) |
 | `card` | La card, senza passare dalla schiusa |
 | `pet` | Coccola: cuoricini per ~2,5 s |
 | `say "testo"` | Mostra il buddy con quel testo nel fumetto |
@@ -172,6 +173,21 @@ node "$BUDDY" say "Terzo rebase in venti minuti. Nessun giudizio."
 ```
 
 Se l'utente ha dato `mute`, non usare `say`: sta chiedendo silenzio.
+
+### 5. Le animazioni non girano nella chat
+
+`pet` e la schiusa sono animazioni ANSI: hanno bisogno di un TTY, e l'engine le spegne da sé
+quando non c'è (in pipe l'output resta statico e pulito). La tua risposta è markdown, quindi
+**non** puoi farle vedere incollando testo.
+
+Se l'utente vuole vederle, esportale in GIF e mandagliela con SendUserFile:
+
+```bash
+node "$BUDDY" frames pet | python3 <cartella-del-repo>/tools/animate.py /tmp/pet.gif
+```
+
+Serve Pillow. `frames hatch` fa lo stesso per la schiusa. In alternativa, dì all'utente di
+lanciare `node "$BUDDY" pet` dal suo terminale, dove l'animazione gira davvero.
 
 ## Come parlare come il buddy
 

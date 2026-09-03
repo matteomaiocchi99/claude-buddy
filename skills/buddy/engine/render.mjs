@@ -51,7 +51,7 @@ export function termWidth() {
  * il colore applicato. Uno shiny cambia tinta a ogni riga e a ogni tick, ed è
  * questo lo "shimmer": il colore scorre lungo il corpo.
  */
-export function composeFrame(buddy, frameIndex = 0, tick = 0) {
+export function composeFrameData(buddy, frameIndex = 0, tick = 0) {
   const frame = buddy.species.frames[frameIndex % buddy.species.frames.length];
   // `{E}` è un carattere solo: quante volte compare lo decide lo sprite.
   const eyes = (line) => line.replaceAll(EYE_SLOT, buddy.eyes.glyph);
@@ -60,15 +60,18 @@ export function composeFrame(buddy, frameIndex = 0, tick = 0) {
   const body = frame.map(eyes);
   const rows = buddy.hat.id === 'none' ? body : [buddy.hat.sprite, ...body.slice(1)];
 
-  return rows.map((row, i) => {
-    if (!row.trim()) return row;
-    if (buddy.shiny) {
-      const hue = RAINBOW[(i + tick) % RAINBOW.length];
-      return fg(hue, row);
-    }
+  return rows.map((text, i) => {
+    if (!text.trim()) return { text, fg: null };
+    if (buddy.shiny) return { text, fg: RAINBOW[(i + tick) % RAINBOW.length] };
     // Il cappello prende il colore della rarità, il corpo quello della specie.
-    return fg(i === 0 ? buddy.rarity.color : buddy.species.color, row);
+    const hatted = buddy.hat.id !== 'none' && i === 0;
+    return { text, fg: hatted ? buddy.rarity.color : buddy.species.color };
   });
+}
+
+/** Come sopra, ma già colorato in ANSI e pronto da stampare. */
+export function composeFrame(buddy, frameIndex = 0, tick = 0) {
+  return composeFrameData(buddy, frameIndex, tick).map((r) => (r.fg == null ? r.text : fg(r.fg, r.text)));
 }
 
 /** Manda a capo `text` a `width` colonne, senza spezzare le parole. */
@@ -212,6 +215,44 @@ export const EGG_FRAMES = [
   ["   \\  |  /  ", "    \\ | /   ", "  -- ,*, --  ", "    / | \\   ", "   /  |  \\  "],
 ];
 
+/**
+ * I frame della coccola come **dati**, senza ANSI e senza tempo: due cuori
+ * sfasati che salgono. Li usa sia l'animazione a terminale sia l'esportazione
+ * (`frames`), così non esistono due versioni della stessa animazione.
+ */
+export function petFrames(buddy, ticks = 16) {
+  const HEARTS = ['♥', '♡'];
+  const out = [];
+  for (let t = 0; t < ticks; t++) {
+    const art = composeFrameData(buddy, t % 2 === 0 ? 0 : 1, t);
+    const rows = art.length;
+    const first = rows - 1 - (t % rows);
+    const second = rows - 1 - ((t + 3) % rows);
+    out.push({
+      rows: art.map((r, i) => {
+        const heart = i === first ? HEARTS[0] : i === second ? HEARTS[1] : null;
+        return heart
+          ? { text: r.text.padEnd(SPRITE_W) + '  ' + heart, fg: r.fg, accent: { col: SPRITE_W + 2, fg: i === first ? 197 : 212 } }
+          : { text: r.text.padEnd(SPRITE_W) + '   ', fg: r.fg };
+      }),
+    });
+  }
+  return out;
+}
+
+/** I frame della schiusa: uovo che si crepa, esplosione, buddy. */
+export function hatchFrames(buddy) {
+  const out = EGG_FRAMES.map((egg) => ({
+    rows: egg.map((text) => ({ text, fg: buddy.rarity.color })),
+    delayMs: 320,
+  }));
+  out[out.length - 1].delayMs = 420;
+  for (let t = 0; t < 6; t++) {
+    out.push({ rows: composeFrameData(buddy, t % 3, t), delayMs: 140 });
+  }
+  return out;
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** true se possiamo animare: serve un TTY e nessun --no-anim. */
@@ -222,47 +263,34 @@ function clearLines(n) {
   if (n > 0) process.stdout.write(`${ESC}${n}A${ESC}0J`);
 }
 
-export async function animate(framesFn, { ticks, delay = 120 }) {
+/** Rende una riga di frame in ANSI, cuore compreso. */
+function paint(row) {
+  if (!row.accent) return row.fg == null ? row.text : fg(row.fg, row.text);
+  const body = row.text.slice(0, row.accent.col);
+  const rest = row.text.slice(row.accent.col);
+  return (row.fg == null ? body : fg(row.fg, body)) + fg(row.accent.fg, rest);
+}
+
+/** Riproduce una lista di frame sul terminale. */
+async function play(frames, defaultDelay) {
   let printed = 0;
-  for (let t = 0; t < ticks; t++) {
+  for (const f of frames) {
     clearLines(printed);
-    const lines = framesFn(t);
+    const lines = f.rows.map(paint);
     process.stdout.write(lines.join('\n') + '\n');
     printed = lines.length;
-    await sleep(delay);
+    await sleep(f.delayMs ?? defaultDelay);
   }
-  return printed;
 }
 
 /** Schiusa: l'uovo si crepa, esplode, e resta il buddy. */
 export async function playHatch(buddy, soul, opts = {}) {
   if (!canAnimate(opts)) return;
-  const colorOf = (i) => fg(buddy.rarity.color, EGG_FRAMES[i].join('\n'));
-  for (let i = 0; i < EGG_FRAMES.length; i++) {
-    if (i > 0) clearLines(5);
-    process.stdout.write(colorOf(i) + '\n');
-    await sleep(i === EGG_FRAMES.length - 1 ? 420 : 320);
-  }
-  clearLines(5);
-  await animate((t) => composeFrame(buddy, t % 3, t), { ticks: 6, delay: 140 });
+  await play(hatchFrames(buddy), 300);
 }
 
 /** Coccola: cuoricini che salgono accanto al buddy per ~2,5 secondi. */
 export async function playPet(buddy, opts = {}) {
-  const HEARTS = ['♥', '♡'];
   if (!canAnimate(opts)) return;
-  const ticks = 16;
-  await animate((t) => {
-    const art = composeFrame(buddy, t % 2 === 0 ? 0 : 1, t);
-    const out = [];
-    // Due cuori sfasati che salgono: uno per tick, non uno per riga.
-    const rows = art.length;
-    const first = rows - 1 - (t % rows);
-    const second = rows - 1 - ((t + 3) % rows);
-    for (let i = 0; i < rows; i++) {
-      const heart = i === first ? fg(197, HEARTS[0]) : i === second ? fg(212, HEARTS[1]) : ' ';
-      out.push(padTo(art[i], SPRITE_W) + '  ' + heart);
-    }
-    return out;
-  }, { ticks, delay: 150 });
+  await play(petFrames(buddy), 150);
 }

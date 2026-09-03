@@ -12,6 +12,7 @@
  *   buddy.mjs status             stato leggibile
  *   buddy.mjs peek               JSON di sola lettura: NON schiude (per Claude)
  *   buddy.mjs prompt             il prompt di sistema originale per nome e personalità
+ *   buddy.mjs frames [pet|hatch] i frame dell'animazione in JSON (per esportarla)
  *   buddy.mjs json               tutto il buddy in JSON, schiudendo se serve
  *   buddy.mjs statusline         una riga sola, per la statusLine di Claude Code
  *   buddy.mjs bar                stato dell'innesto nella statusLine
@@ -36,6 +37,7 @@ import {
 } from './soul.mjs';
 import {
   composeFrame, renderBuddy, statCard, playHatch, playPet, stars, fg, bold, dim, canAnimate,
+  petFrames, hatchFrames,
 } from './render.mjs';
 import { chatter } from './chatter.mjs';
 import { barStatus, barInstall, barRemove, POSITIONS } from './bar.mjs';
@@ -92,7 +94,7 @@ const out = (lines) =>
 /** I comandi validi. Elenco esplicito: un typo non deve poter schiudere il pet. */
 const COMMANDS = new Set([
   'show', 'peek', 'json', 'status', 'statusline', 'card', 'pet', 'say',
-  'gallery', 'check', 'mute', 'unmute', 'off', 'on', 'bar', 'prompt',
+  'gallery', 'check', 'mute', 'unmute', 'off', 'on', 'bar', 'prompt', 'frames',
 ]);
 
 async function main() {
@@ -152,39 +154,6 @@ async function main() {
 
   if (cmd === 'prompt') return console.log(SOUL_PROMPT);
 
-  if (cmd === 'mute' || cmd === 'unmute') {
-    const muted = cmd === 'mute';
-    writePrefs({ muted });
-    return out(dim(muted ? '  Buddy silenziato. `unmute` per riattivarlo.' : '  Buddy di nuovo loquace.'));
-  }
-  if (cmd === 'off' || cmd === 'on') {
-    const hidden = cmd === 'off';
-    writePrefs({ hidden });
-    return out(dim(hidden ? '  Buddy nascosto. `on` per farlo tornare.' : '  Buddy di nuovo visibile.'));
-  }
-
-  /* Schiusa e stato -------------------------------------------------- */
-
-  // Le bones si ricalcolano ora, comunque: sono loro a decidere le stat, e le
-  // stat servono già alla generazione del soul di default.
-  const pre = buildBuddy(userId);
-  let soul = readSoul(userId);
-  const firstHatch = !soul || opts.force;
-
-  if (firstHatch) {
-    const base = defaultSoul(userId, pre.stats);
-    soul = writeSoul(userId, {
-      ...base,
-      ...(opts.name ? { name: opts.name } : {}),
-      ...(opts.personality ? { personality: opts.personality } : {}),
-    }, { force: Boolean(opts.force) });
-  } else if (opts.name || opts.personality) {
-    // Il soul non si riscrive dopo la schiusa: è il patto dell'articolo.
-    process.stderr.write(dim('  (buddy già schiuso: nome e personalità non si riscrivono, usa --force)\n'));
-  }
-
-  const buddy = buildBuddy(userId, soul);
-
   if (cmd === 'json' || opts.json) {
     return console.log(JSON.stringify({
       name: soul.name,
@@ -227,6 +196,54 @@ async function main() {
 
   if (prefs.hidden && cmd !== 'card' && cmd !== 'pet') {
     return out(dim('  (buddy nascosto — `on` per farlo tornare)'));
+  }
+
+  if (cmd === 'mute' || cmd === 'unmute') {
+    const muted = cmd === 'mute';
+    writePrefs({ muted });
+    return out(dim(muted ? '  Buddy silenziato. `unmute` per riattivarlo.' : '  Buddy di nuovo loquace.'));
+  }
+  if (cmd === 'off' || cmd === 'on') {
+    const hidden = cmd === 'off';
+    writePrefs({ hidden });
+    return out(dim(hidden ? '  Buddy nascosto. `on` per farlo tornare.' : '  Buddy di nuovo visibile.'));
+  }
+
+  /* Schiusa e stato -------------------------------------------------- */
+
+  // Le bones si ricalcolano ora, comunque: sono loro a decidere le stat, e le
+  // stat servono già alla generazione del soul di default.
+  const pre = buildBuddy(userId);
+  let soul = readSoul(userId);
+  const firstHatch = !soul || opts.force;
+
+  if (firstHatch) {
+    const base = defaultSoul(userId, pre.stats);
+    soul = writeSoul(userId, {
+      ...base,
+      ...(opts.name ? { name: opts.name } : {}),
+      ...(opts.personality ? { personality: opts.personality } : {}),
+    }, { force: Boolean(opts.force) });
+  } else if (opts.name || opts.personality) {
+    // Il soul non si riscrive dopo la schiusa: è il patto dell'articolo.
+    process.stderr.write(dim('  (buddy già schiuso: nome e personalità non si riscrivono, usa --force)\n'));
+  }
+
+  const buddy = buildBuddy(userId, soul);
+
+  if (cmd === 'frames') {
+    // I frame come dati, senza ANSI e senza tempo reale: servono a esportare
+    // l'animazione (GIF, SVG, qualunque cosa) senza duplicarne la logica.
+    const kind = opts._[1] || 'pet';
+    if (!['pet', 'hatch'].includes(kind)) throw new Error(`animazione non riconosciuta: ${kind} (pet, hatch)`);
+    const frames = kind === 'pet' ? petFrames(buddy) : hatchFrames(buddy);
+    return console.log(JSON.stringify({
+      kind,
+      name: soul.name,
+      species: buddy.species.id,
+      defaultDelayMs: kind === 'pet' ? 150 : 300,
+      frames,
+    }, null, 2));
   }
 
   if (cmd === 'card') return out(['', ...statCard(buddy, soul), '']);

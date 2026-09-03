@@ -95,6 +95,22 @@ ctx █████████░ 91% │ no-git │ Opus 5
 ★ (°) Tuftle · cactus  « Al 91% di contesto. Salva quello che ti serve ricordare. »
 ```
 
+## Esportare le animazioni
+
+`pet` e la schiusa sono animazioni ANSI: girano in un terminale vero, e l'engine le spegne da
+sé quando non c'è un TTY. Per condividerle (una chat, un README) i frame si esportano come dati
+e si rendono in GIF:
+
+```bash
+node skills/buddy/engine/buddy.mjs frames pet   | tools/animate.py pet.gif
+node skills/buddy/engine/buddy.mjs frames hatch | tools/animate.py hatch.gif
+```
+
+`buddy.mjs frames` è **puro Node**: emette i frame in JSON, già con i colori riga per riga.
+`tools/animate.py` è l'unico pezzo con una dipendenza (Pillow) e resta **opzionale** — l'engine
+non lo importa. La logica dell'animazione vive solo in `render.mjs`: il terminale e il GIF
+consumano gli stessi frame, quindi non possono divergere.
+
 ## Dove finiscono i dati
 
 | Cosa | Dove |
