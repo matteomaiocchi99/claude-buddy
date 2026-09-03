@@ -1,0 +1,2 @@
+# Solo per tools/animate.py (export dei frame in GIF). L'engine non ha dipendenze.
+pillow
