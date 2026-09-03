@@ -51,6 +51,10 @@ provenienza e [`skills/buddy/README.md`](skills/buddy/README.md) per l'algoritmo
 /plugin install claude-buddy@claude-buddy
 ```
 
+Installato così la skill si chiama **`/claude-buddy:buddy`**, non `/buddy`: le skill che
+arrivano da un plugin portano davanti il nome del plugin. Negli esempi qui sotto leggi `/buddy`
+come «la skill, con qualunque nome sia arrivata».
+
 ### A mano
 
 ```bash
@@ -59,7 +63,14 @@ cd claude-buddy && ./install.sh
 ```
 
 `install.sh` copia `skills/buddy/` in `~/.claude/skills/buddy/`, senza toccare nulla d'altro.
-Con `--force` sovrascrive un'installazione esistente.
+Con `--force` sovrascrive un'installazione esistente. Così la skill resta `/buddy`.
+
+Se lavori sul repo e non vuoi due copie da tenere in sync, al posto della copia va bene un
+symlink — Claude Code lo segue:
+
+```bash
+ln -s "$PWD/skills/buddy" ~/.claude/skills/buddy
+```
 
 ## Uso
 
@@ -94,7 +105,8 @@ spegne da sé quando non c'è un TTY — quindi in una chat o in un README non s
 condividerle, `/buddy frames [pet|hatch]` emette i frame come dati (JSON, già con i colori riga
 per riga) e `tools/animate.py` li rende in GIF animata.
 
-`tools/animate.py` è l'unico pezzo con una dipendenza (Pillow) e resta **opzionale**: l'engine
+`tools/animate.py` è l'unico pezzo con una dipendenza (Pillow, dichiarata in
+`tools/requirements.txt` — `pip install -r tools/requirements.txt`) e resta **opzionale**: l'engine
 non lo importa. La logica dell'animazione vive solo in `render.mjs`, quindi il terminale e il
 GIF consumano gli stessi frame e non possono divergere.
 
