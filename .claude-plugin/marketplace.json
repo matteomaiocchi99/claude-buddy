@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claude-buddy",
+  "description": "Claude Buddy — pet da terminale per Claude Code",
+  "owner": {
+    "name": "Matteo Maiocchi"
+  },
+  "plugins": [
+    {
+      "name": "claude-buddy",
+      "source": "./",
+      "description": "Pet da terminale generato deterministicamente dal proprio account id: 18 specie, 5 tier di rarita', 6 varianti di occhi, 8 cappelli, e un watcher che commenta la sessione nella status bar. Ricostruzione della feature rimossa da Claude Code in v2.1.97.",
+      "version": "1.0.0"
+    }
+  ]
+}
