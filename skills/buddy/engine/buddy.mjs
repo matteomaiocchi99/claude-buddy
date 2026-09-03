@@ -154,6 +154,39 @@ async function main() {
 
   if (cmd === 'prompt') return console.log(SOUL_PROMPT);
 
+  if (cmd === 'mute' || cmd === 'unmute') {
+    const muted = cmd === 'mute';
+    writePrefs({ muted });
+    return out(dim(muted ? '  Buddy silenziato. `unmute` per riattivarlo.' : '  Buddy di nuovo loquace.'));
+  }
+  if (cmd === 'off' || cmd === 'on') {
+    const hidden = cmd === 'off';
+    writePrefs({ hidden });
+    return out(dim(hidden ? '  Buddy nascosto. `on` per farlo tornare.' : '  Buddy di nuovo visibile.'));
+  }
+
+  /* Schiusa e stato -------------------------------------------------- */
+
+  // Le bones si ricalcolano ora, comunque: sono loro a decidere le stat, e le
+  // stat servono già alla generazione del soul di default.
+  const pre = buildBuddy(userId);
+  let soul = readSoul(userId);
+  const firstHatch = !soul || opts.force;
+
+  if (firstHatch) {
+    const base = defaultSoul(userId, pre.stats);
+    soul = writeSoul(userId, {
+      ...base,
+      ...(opts.name ? { name: opts.name } : {}),
+      ...(opts.personality ? { personality: opts.personality } : {}),
+    }, { force: Boolean(opts.force) });
+  } else if (opts.name || opts.personality) {
+    // Il soul non si riscrive dopo la schiusa: è il patto dell'articolo.
+    process.stderr.write(dim('  (buddy già schiuso: nome e personalità non si riscrivono, usa --force)\n'));
+  }
+
+  const buddy = buildBuddy(userId, soul);
+
   if (cmd === 'json' || opts.json) {
     return console.log(JSON.stringify({
       name: soul.name,
@@ -197,39 +230,6 @@ async function main() {
   if (prefs.hidden && cmd !== 'card' && cmd !== 'pet') {
     return out(dim('  (buddy nascosto — `on` per farlo tornare)'));
   }
-
-  if (cmd === 'mute' || cmd === 'unmute') {
-    const muted = cmd === 'mute';
-    writePrefs({ muted });
-    return out(dim(muted ? '  Buddy silenziato. `unmute` per riattivarlo.' : '  Buddy di nuovo loquace.'));
-  }
-  if (cmd === 'off' || cmd === 'on') {
-    const hidden = cmd === 'off';
-    writePrefs({ hidden });
-    return out(dim(hidden ? '  Buddy nascosto. `on` per farlo tornare.' : '  Buddy di nuovo visibile.'));
-  }
-
-  /* Schiusa e stato -------------------------------------------------- */
-
-  // Le bones si ricalcolano ora, comunque: sono loro a decidere le stat, e le
-  // stat servono già alla generazione del soul di default.
-  const pre = buildBuddy(userId);
-  let soul = readSoul(userId);
-  const firstHatch = !soul || opts.force;
-
-  if (firstHatch) {
-    const base = defaultSoul(userId, pre.stats);
-    soul = writeSoul(userId, {
-      ...base,
-      ...(opts.name ? { name: opts.name } : {}),
-      ...(opts.personality ? { personality: opts.personality } : {}),
-    }, { force: Boolean(opts.force) });
-  } else if (opts.name || opts.personality) {
-    // Il soul non si riscrive dopo la schiusa: è il patto dell'articolo.
-    process.stderr.write(dim('  (buddy già schiuso: nome e personalità non si riscrivono, usa --force)\n'));
-  }
-
-  const buddy = buildBuddy(userId, soul);
 
   if (cmd === 'frames') {
     // I frame come dati, senza ANSI e senza tempo reale: servono a esportare
