@@ -75,9 +75,9 @@ Con `--force` sovrascrive un'installazione esistente.
 
 ## Il pet nella status bar
 
-`buddy.mjs bar <bottom|top|append|prepend>` innesta il pet nella `statusLine` di Claude Code
+`/buddy bar <bottom|top|append|prepend>` innesta il pet nella `statusLine` di Claude Code
 **senza sostituire** quello che c'è già: il wrapper riesegue il comando preesistente e ci monta
-il buddy accanto. `bar off` rimette tutto come era, byte per byte.
+il buddy accanto. `/buddy bar off` rimette tutto come era, byte per byte.
 
 Da lì il *watcher* commenta la sessione quando una soglia vera scatta — contesto quasi pieno,
 limite di utilizzo, tool che falliscono, `git push --force`, rebase ripetuti:
@@ -89,19 +89,14 @@ ctx █████████░ 91% │ no-git │ Opus 5
 
 ## Esportare le animazioni
 
-`pet` e la schiusa sono animazioni ANSI: girano in un terminale vero, e l'engine le spegne da
-sé quando non c'è un TTY. Per condividerle (una chat, un README) i frame si esportano come dati
-e si rendono in GIF:
+`/buddy pet` e la schiusa sono animazioni ANSI: girano in un terminale vero, e l'engine le
+spegne da sé quando non c'è un TTY — quindi in una chat o in un README non si muovono. Per
+condividerle, `/buddy frames [pet|hatch]` emette i frame come dati (JSON, già con i colori riga
+per riga) e `tools/animate.py` li rende in GIF animata.
 
-```bash
-node skills/buddy/engine/buddy.mjs frames pet   | tools/animate.py pet.gif
-node skills/buddy/engine/buddy.mjs frames hatch | tools/animate.py hatch.gif
-```
-
-`buddy.mjs frames` è **puro Node**: emette i frame in JSON, già con i colori riga per riga.
-`tools/animate.py` è l'unico pezzo con una dipendenza (Pillow) e resta **opzionale** — l'engine
-non lo importa. La logica dell'animazione vive solo in `render.mjs`: il terminale e il GIF
-consumano gli stessi frame, quindi non possono divergere.
+`tools/animate.py` è l'unico pezzo con una dipendenza (Pillow) e resta **opzionale**: l'engine
+non lo importa. La logica dell'animazione vive solo in `render.mjs`, quindi il terminale e il
+GIF consumano gli stessi frame e non possono divergere.
 
 ## Dove finiscono i dati
 
