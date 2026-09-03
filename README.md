@@ -73,14 +73,6 @@ Con `--force` sovrascrive un'installazione esistente.
 /buddy bar bottom   innesta il pet nella status bar
 ```
 
-Oppure direttamente:
-
-```bash
-node skills/buddy/engine/buddy.mjs card
-node skills/buddy/engine/buddy.mjs check <un-altro-account-id>   # il buddy di qualcun altro
-node skills/buddy/engine/buddy.mjs gallery
-```
-
 ## Il pet nella status bar
 
 `buddy.mjs bar <bottom|top|append|prepend>` innesta il pet nella `statusLine` di Claude Code
